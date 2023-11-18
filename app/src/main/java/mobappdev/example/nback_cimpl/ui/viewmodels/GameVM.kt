@@ -1,6 +1,19 @@
 package mobappdev.example.nback_cimpl.ui.viewmodels
 
 import android.util.Log
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
@@ -70,6 +83,8 @@ class GameVM(
     private val nBackHelper = NBackHelper()  // Helper that generate the event array
     private var events = emptyArray<Int>()  // Array with all events
 
+    private var currentIndex = _gameState.value.curentIndex
+
     override fun setGameType(gameType: GameType) {
         // update the gametype in the gamestate
         _gameState.value = _gameState.value.copy(gameType = gameType)
@@ -79,7 +94,8 @@ class GameVM(
         job?.cancel()  // Cancel any existing game loop
 
         // Get the events from our C-model (returns IntArray, so we need to convert to Array<Int>)
-        events = nBackHelper.generateNBackString(10, 9, 30, nBack).toList().toTypedArray()  // Todo Higher Grade: currently the size etc. are hardcoded, make these based on user input
+        events = nBackHelper.generateNBackString(10, 9, 30, nBack).toList()
+            .toTypedArray()  // Todo Higher Grade: currently the size etc. are hardcoded, make these based on user input
         Log.d("GameVM", "The following sequence was generated: ${events.contentToString()}")
 
         job = viewModelScope.launch {
@@ -93,21 +109,47 @@ class GameVM(
     }
 
     override fun checkMatch() {
+        var havePressed = false
+        if (!havePressed){
+            if (currentIndex in 2..9) {
+                if (events[currentIndex] == events[currentIndex - nBack]) {
+                    _score.value += 1
+                    havePressed = false
+                }
+
+                //update highscore if score is higher
+                if (_score.value > _highscore.value) {
+                    _highscore.value = _score.value
+                    viewModelScope.launch {
+                        userPreferencesRepository.saveHighScore(_score.value)
+                    }
+                }
+            }
+        }
+    }
+
         /**
          * Todo: This function should check if there is a match when the user presses a match button
          * Make sure the user can only register a match once for each event.
          */
-    }
+
+
     private fun runAudioGame() {
         // Todo: Make work for Basic grade
     }
 
     private suspend fun runVisualGame(events: Array<Int>){
+
         // Todo: Replace this code for actual game code
+        currentIndex = 0
+        _score.value = 0
+
         for (value in events) {
             _gameState.value = _gameState.value.copy(eventValue = value)
             delay(eventInterval)
+            currentIndex += 1
         }
+
 
     }
 
@@ -144,8 +186,10 @@ enum class GameType{
 data class GameState(
     // You can use this state to push values from the VM to your UI.
     val gameType: GameType = GameType.Visual,  // Type of the game
-    val eventValue: Int = -1  // The value of the array string
+    val eventValue: Int = -1,  // The value of the array string
+    val curentIndex: Int = 0
 )
+
 
 class FakeVM: GameViewModel{
     override val gameState: StateFlow<GameState>
@@ -166,3 +210,4 @@ class FakeVM: GameViewModel{
     override fun checkMatch() {
     }
 }
+
