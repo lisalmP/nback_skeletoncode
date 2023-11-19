@@ -1,5 +1,6 @@
 package mobappdev.example.nback_cimpl.ui.screens
 
+import android.content.res.Configuration
 import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -38,8 +39,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.modifier.modifierLocalConsumer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -68,7 +71,23 @@ import java.time.format.TextStyle
 @Composable
 fun ImageScreen(
     vm: GameViewModel,
-    //navController: NavController
+    navController: NavController
+) {
+    val configuration = LocalConfiguration.current
+
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    if (isLandscape) {
+        LandscapeImageScreen(vm = vm, navController = navController)
+    } else {
+        PortraitImageScreen(vm = vm, navController = navController)
+    }
+}
+
+@Composable
+fun PortraitImageScreen(
+    vm: GameViewModel,
+    navController: NavController
 ) {
     val gameState by vm.gameState.collectAsState()
     val score by vm.score.collectAsState()
@@ -83,6 +102,7 @@ fun ImageScreen(
     }
 
     (vm::initializerOn)()
+    (vm::resetEventValue)()
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState)}
@@ -95,6 +115,11 @@ fun ImageScreen(
             verticalArrangement = Arrangement.Center
 
         ) {
+            Text(
+                modifier = Modifier.padding(5.dp),
+                text = "Image-Mode!\uD83E\uDDE0",
+                style = MaterialTheme.typography.headlineSmall
+            )
 
             Text(
                 text = "Score = $score",
@@ -193,6 +218,166 @@ fun ImageScreen(
     }
 }
 
+@Composable
+fun LandscapeImageScreen(
+    vm: GameViewModel,
+    navController: NavController
+) {
+    val gameState by vm.gameState.collectAsState()
+    val score by vm.score.collectAsState()
+    val buttonColor by vm.buttonColor.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember{SnackbarHostState()}
+    var gridSize = 3
+    val gridItems = remember {
+        Array(gridSize * gridSize) { index ->
+            GridItem()
+        }
+    }
+
+    (vm::initializerOn)()
+    (vm::resetEventValue)()
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState)}
+    ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxHeight()
+                    .padding(it),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1f)
+                        .padding(16.dp)
+                ) {
+                    Column(
+                        Modifier
+                            .fillMaxHeight(),
+                        horizontalAlignment =
+                        Alignment.CenterHorizontally,
+                        verticalArrangement =
+                        Arrangement.SpaceAround
+
+                    ) {
+                        if (gameState.eventValue != -1) {
+
+                            for (row in 0 until gridSize) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceAround
+                                ) {
+                                    for (col in 0 until gridSize) {
+                                        val index = row * gridSize + col
+
+                                        if (index + 1 == gameState.eventValue) {
+                                            gridItems[index].ChangeColor(Color.Blue)
+
+                                        } else {
+                                            gridItems[index].ChangeColor(Color.DarkGray)
+                                        }
+                                        gridItems[index].DrawBox(index)
+                                    }
+                                }
+                            }
+
+
+                        } else {
+                            for (row in 0 until gridSize) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceAround
+                                ) {
+                                    for (col in 0 until gridSize) {
+                                        val index = row * gridSize + col
+                                        gridItems[index].ChangeColor(Color.DarkGray)
+                                        gridItems[index].DrawBox(index)
+
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .weight(1f)
+                        .padding(16.dp)
+                ){
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(),
+                    verticalArrangement = Arrangement.Center,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        modifier = Modifier.padding(5.dp),
+                        text = "Image-Mode!\uD83E\uDDE0",
+                        style = MaterialTheme.typography.headlineSmall
+                    )
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        text = "Score = $score",
+                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Text(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(10.dp),
+                        text = "Current event is: ${gameState.curentEventValue}/10"
+                    )
+
+                    if (gameState.eventValue == -1) {
+                        Button(onClick = { (vm::startGame)(context) }) {
+
+                            Text(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(10.dp),
+                                text = "Start Game",
+                                style = MaterialTheme.typography.displaySmall
+                            )
+
+                        }
+                    } else {
+                        Text(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp),
+                            text = "Press when you see a match:"
+                        )
+
+                        Button(
+                            onClick = {
+                                (vm::checkMatch)()
+
+                            },
+                            modifier = Modifier
+                                .background(buttonColor, RoundedCornerShape(8.dp))
+                                .padding(16.dp)
+                            //.background(buttonColor)
+
+                        ) {
+                            Text(
+                                modifier = Modifier.padding(5.dp),
+                                text = "Match!".uppercase(),
+                                style = MaterialTheme.typography.displaySmall
+                            )
+                        }
+                    }
+                }
+            }
+            }
+
+    }
+}
 
 data class GridItem(
     var color: Color = Color.Blue,
@@ -223,6 +408,6 @@ data class GridItem(
 fun ImageScreenPreview() {
     // Since I am injecting a VM into my homescreen that depends on Application context, the preview doesn't work.
     Surface(){
-        ImageScreen(FakeVM()) //, rememberNavController())
+        ImageScreen(FakeVM(), rememberNavController())
     }
 }

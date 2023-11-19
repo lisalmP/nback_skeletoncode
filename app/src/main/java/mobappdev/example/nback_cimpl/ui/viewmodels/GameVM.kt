@@ -146,6 +146,7 @@ class GameVM(
                 GameType.AudioVisual -> runAudioVisualGame()
                 GameType.Visual -> runVisualGame(events)
             }
+
             //update highscore if score is higher
             if (_score.value > _highscore.value) {
                 _highscore.value = _score.value
@@ -188,14 +189,13 @@ class GameVM(
                 resetEventValue()
                 return
             }
-
             _gameState.value = _gameState.value.copy(eventValue = value)
-
+            addCurrentEventValue()
             val generatedChar = convertValueToLetter(value)
             TextTospeech(context, generatedChar)
 
             delay(eventInterval)
-            addCurrentEventValue()
+
             gotScore = false
             _buttonColor.value = Blue80
         }

@@ -1,5 +1,6 @@
 package mobappdev.example.nback_cimpl.ui.screens
 
+import android.content.res.Configuration
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -57,6 +59,21 @@ fun SoundScreen(
     vm: GameViewModel,
     navController: NavController
 ) {
+    val configuration = LocalConfiguration.current
+
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+
+    if (isLandscape) {
+        LandscapeSoundScreen(vm = vm, navController = navController)
+    } else {
+        PortraitSoundScreen(vm = vm, navController = navController)
+    }
+}
+@Composable
+fun PortraitSoundScreen(
+    vm: GameViewModel,
+    navController: NavController
+) {
     val gameState by vm.gameState.collectAsState()
     val score by vm.score.collectAsState()
     val snackBarHostState = remember { SnackbarHostState() }
@@ -65,6 +82,9 @@ fun SoundScreen(
     val scope = rememberCoroutineScope()
 
     (vm::initializerOn)()
+    (vm::resetEventValue)()
+
+
 
 
     Scaffold(
@@ -115,6 +135,75 @@ fun SoundScreen(
         }
     }
     }
+
+@Composable
+fun LandscapeSoundScreen(
+    vm: GameViewModel,
+    navController: NavController
+) {
+    val gameState by vm.gameState.collectAsState()
+    val score by vm.score.collectAsState()
+    val snackBarHostState = remember { SnackbarHostState() }
+    val buttonColor by vm.buttonColor.collectAsState()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    (vm::initializerOn)()
+    (vm::resetEventValue)()
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackBarHostState) }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(it),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                modifier = Modifier.padding(5.dp),
+                text = "Sound-Mode!\uD83E\uDDE0",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text(
+                text = "Score = $score",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text("Current event is: ${gameState.curentEventValue}/10")
+
+            if(gameState.eventValue == -1){
+                Button(onClick = { (vm::startGame)(context) }) {
+
+                    Text(
+                        modifier = Modifier.padding(5.dp),
+                        text = "Start Game",
+                        style = MaterialTheme.typography.displaySmall
+                    )
+                }
+            } else {
+                Text(text = "Press when you hear a match:")
+
+                Button(
+                    onClick = {
+                        (vm::checkMatch)()
+                    },
+                    modifier = Modifier
+                        .background(buttonColor, RoundedCornerShape(8.dp))
+                        .padding(16.dp)
+                    //.background(buttonColor)
+
+                ) {
+                    Text(
+                        modifier = Modifier.padding(5.dp),
+                        text = "Match!".uppercase(),
+                        style = MaterialTheme.typography.displaySmall
+                    )
+                }
+            }
+        }
+    }
+}
 
 
 

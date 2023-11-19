@@ -73,8 +73,8 @@ fun navigation(gameViewModel: GameVM){
 
         composable("image") {
             ImageScreen(
-                vm = gameViewModel)
-               // navController = navController)
+                vm = gameViewModel,
+               navController = navController)
         }
 
         composable("sound") {
