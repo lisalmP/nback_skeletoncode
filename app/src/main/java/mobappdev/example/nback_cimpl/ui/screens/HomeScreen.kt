@@ -34,6 +34,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import mobappdev.example.nback_cimpl.R
 import mobappdev.example.nback_cimpl.ui.viewmodels.FakeVM
+import mobappdev.example.nback_cimpl.ui.viewmodels.GameType
 import mobappdev.example.nback_cimpl.ui.viewmodels.GameViewModel
 
 /**
@@ -59,6 +60,10 @@ fun HomeScreen(
     val snackBarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    (vm::initializerOff)()
+    (vm::resetCurrentEventValue)()
+
+
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackBarHostState) }
@@ -72,7 +77,7 @@ fun HomeScreen(
         ) {
             Text(
                 modifier = Modifier.padding(32.dp),
-                text = "High-Score = $highscore",
+                text = "Current High-Score = $highscore",
                 style = MaterialTheme.typography.headlineLarge
             )
             // Todo: You'll probably want to change this "BOX" part of the composable
@@ -84,21 +89,19 @@ fun HomeScreen(
                     Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (gameState.eventValue != -1) {
-                        Text(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = "Current eventValue is: ${gameState.eventValue}",
-                            textAlign = TextAlign.Center
-                        )
-                    }
-                    Button(onClick = vm::startGame) {
-                        Text(text = "Generate eventValues")
-                    }
+
+                    Text(
+                        modifier = Modifier.fillMaxWidth(),
+                        text = "welcome to N-Back!".uppercase(),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.displaySmall
+                    )
+
                 }
             }
             Text(
                 modifier = Modifier.padding(16.dp),
-                text = "Start Game".uppercase(),
+                text = "Choose your game:".uppercase(),
                 style = MaterialTheme.typography.displaySmall
             )
             Row(
@@ -109,12 +112,8 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Button(onClick = {
-                    // Todo: change this button behaviour
-                    scope.launch {
-                        snackBarHostState.showSnackbar(
-                            message = "Hey! you clicked the audio button"
-                        )
-                    }
+                    (vm::setGameType)(GameType.Audio)
+                    navController.navigate("sound")
                 }) {
                     Icon(
                         painter = painterResource(id = R.drawable.sound_on),
@@ -126,7 +125,7 @@ fun HomeScreen(
                 }
                 Button(
                     onClick = {
-                        // Todo: change this button behaviour
+                        vm.setGameType(GameType.Visual)
                         navController.navigate("image")
                     }) {
                     Icon(

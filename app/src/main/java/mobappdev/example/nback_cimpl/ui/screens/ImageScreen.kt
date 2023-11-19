@@ -1,5 +1,6 @@
 package mobappdev.example.nback_cimpl.ui.screens
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -7,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -34,6 +36,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.modifier.modifierLocalConsumer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -43,6 +48,7 @@ import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.launch
 import mobappdev.example.nback_cimpl.R
 import mobappdev.example.nback_cimpl.ui.viewmodels.FakeVM
+import mobappdev.example.nback_cimpl.ui.viewmodels.GameState
 import mobappdev.example.nback_cimpl.ui.viewmodels.GameViewModel
 import java.time.format.TextStyle
 
@@ -62,13 +68,13 @@ import java.time.format.TextStyle
 @Composable
 fun ImageScreen(
     vm: GameViewModel,
-    navController: NavController
+    //navController: NavController
 ) {
-    val highscore by vm.highscore.collectAsState()  // Highscore is its own StateFlow
     val gameState by vm.gameState.collectAsState()
     val score by vm.score.collectAsState()
-    val scope = rememberCoroutineScope()
-    var isButtonPressed = remember { mutableStateOf(false) }
+    val buttonColor by vm.buttonColor.collectAsState()
+    val context = LocalContext.current
+    val snackbarHostState = remember{SnackbarHostState()}
     var gridSize = 3
     val gridItems = remember {
         Array(gridSize * gridSize) { index ->
@@ -76,17 +82,18 @@ fun ImageScreen(
         }
     }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp),
+    (vm::initializerOn)()
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState)}
     ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(),
-            verticalArrangement = Arrangement.SpaceBetween,
-            horizontalAlignment = Alignment.CenterHorizontally
+                .fillMaxHeight()
+                .padding(it),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+
         ) {
 
             Text(
@@ -95,67 +102,97 @@ fun ImageScreen(
             )
 
             Box(
-                modifier = Modifier.weight(1f),
-                contentAlignment = Alignment.Center
+                modifier = Modifier
+                    //.fillMaxSize()
+                    .aspectRatio(1f)
             ) {
                 Column(
-                    Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    Modifier
+                        .fillMaxHeight(),
+                    horizontalAlignment =
+                    Alignment.CenterHorizontally,
+                    verticalArrangement =
+                    Arrangement.SpaceAround
+
                 ) {
+                    Text("Current event is: ${gameState.curentEventValue}/10")
                     if (gameState.eventValue != -1) {
-                        Text(
-                            modifier = Modifier.fillMaxWidth(),
-                            text = "Current eventValue is: ${gameState.eventValue}",
-                            textAlign = TextAlign.Center
-                        )
-                    }
 
-                    for (row in 0 until gridSize) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .height(100.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            for (col in 0 until gridSize) {
-                                val index = row * gridSize + col
+                        for (row in 0 until gridSize) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceAround
+                            ) {
+                                for (col in 0 until gridSize) {
+                                    val index = row * gridSize + col
 
-                                if (index + 1 == gameState.eventValue) {
-                                    gridItems[index].ChangeColor(Color.Blue)
-                                } else {
-                                    gridItems[index].ChangeColor(Color.DarkGray)
+                                    if (index + 1 == gameState.eventValue) {
+                                        gridItems[index].ChangeColor(Color.Blue)
+
+                                    } else {
+                                        gridItems[index].ChangeColor(Color.DarkGray)
+                                    }
+                                    gridItems[index].DrawBox(index)
                                 }
-                                gridItems[index].DrawBox(index)
+                            }
+                        }
 
+
+                    } else {
+                        for (row in 0 until gridSize) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceAround
+                            ) {
+                                for (col in 0 until gridSize) {
+                                    val index = row * gridSize + col
+                                    gridItems[index].ChangeColor(Color.DarkGray)
+                                    gridItems[index].DrawBox(index)
+
+                                }
                             }
                         }
                     }
-
-                    Button(onClick = vm::startGame) {
-                        Text(
-                            modifier = Modifier.padding(5.dp),
-                            text = "Start Game",
-                            //style = MaterialTheme.typography.displaySmall
-                        )
-
-                    }
-                    Button(
-                        onClick = {
-                            vm.checkMatch()
-                            isButtonPressed.value = false
-                        }
-                    ) {
-                        Text(
-                            modifier = Modifier.padding(5.dp),
-                            text = "Match!".uppercase(),
-                            style = MaterialTheme.typography.displaySmall
-                        )
-                    }
                 }
             }
+            if(gameState.eventValue == -1){
+                Button(onClick = { (vm::startGame)(context) } ) {
+
+                    Text(
+                        modifier = Modifier.padding(5.dp),
+                        text = "Start Game",
+                        style = MaterialTheme.typography.displaySmall
+                    )
+
+                }
+            } else {
+                Text(text = "Press when you see a match:")
+
+                Button(
+                    onClick = {
+                        (vm::checkMatch)()
+
+                    },
+                    modifier = Modifier
+                        .background(buttonColor, RoundedCornerShape(8.dp))
+                        .padding(16.dp)
+                        //.background(buttonColor)
+
+                ) {
+                    Text(
+                        modifier = Modifier.padding(5.dp),
+                        text = "Match!".uppercase(),
+                        style = MaterialTheme.typography.displaySmall
+                    )
+                }
+            }
+
         }
     }
 }
+
 
 data class GridItem(
     var color: Color = Color.Blue,
@@ -171,8 +208,7 @@ data class GridItem(
                     color = color,
                     shape = RoundedCornerShape(10.dp)
                 )
-                .padding(10.dp),
-            contentAlignment = Alignment.Center
+
         ) {}
     }
 
@@ -187,6 +223,6 @@ data class GridItem(
 fun ImageScreenPreview() {
     // Since I am injecting a VM into my homescreen that depends on Application context, the preview doesn't work.
     Surface(){
-        HomeScreen(FakeVM(), rememberNavController())
+        ImageScreen(FakeVM()) //, rememberNavController())
     }
 }

@@ -1,5 +1,6 @@
 package mobappdev.example.nback_cimpl.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -54,27 +57,72 @@ fun SoundScreen(
     vm: GameViewModel,
     navController: NavController
 ) {
-    val highscore by vm.highscore.collectAsState()  // Highscore is its own StateFlow
     val gameState by vm.gameState.collectAsState()
+    val score by vm.score.collectAsState()
+    val snackBarHostState = remember { SnackbarHostState() }
+    val buttonColor by vm.buttonColor.collectAsState()
+    val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    Button(onClick = {
-        // Todo: change this button behaviour
-    }) {
-        Icon(
-            painter = painterResource(id = R.drawable.sound_on),
-            contentDescription = "Sound",
+    (vm::initializerOn)()
+
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackBarHostState) }
+    ) {
+        Column(
             modifier = Modifier
-                .height(48.dp)
-                .aspectRatio(3f / 2f)
-        )}
+                .fillMaxSize()
+                .padding(it),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Score = $score",
+                style = MaterialTheme.typography.headlineSmall
+            )
+            Text("Current event is: ${gameState.curentEventValue}/10")
+
+            if(gameState.eventValue == -1){
+                Button(onClick = { (vm::startGame)(context) }) {
+
+                    Text(
+                        modifier = Modifier.padding(5.dp),
+                        text = "Start Game",
+                        style = MaterialTheme.typography.displaySmall
+                    )
+                }
+            } else {
+                Text(text = "Press when you hear a match:")
+
+                Button(
+                    onClick = {
+                        (vm::checkMatch)()
+                    },
+                    modifier = Modifier
+                        .background(buttonColor, RoundedCornerShape(8.dp))
+                        .padding(16.dp)
+                    //.background(buttonColor)
+
+                ) {
+                    Text(
+                        modifier = Modifier.padding(5.dp),
+                        text = "Match!".uppercase(),
+                        style = MaterialTheme.typography.displaySmall
+                    )
+                }
+            }
+        }
     }
+    }
+
+
 
 @Preview
 @Composable
 fun SoundScreenPreview() {
     // Since I am injecting a VM into my homescreen that depends on Application context, the preview doesn't work.
     Surface(){
-        HomeScreen(FakeVM(), rememberNavController())
+        SoundScreen(FakeVM(), rememberNavController())
     }
 }
